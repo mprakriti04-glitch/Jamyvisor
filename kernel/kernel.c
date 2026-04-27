@@ -1,12 +1,16 @@
+#include "screen.h"
+
 void kernel_main() {
-    volatile char* vga = (volatile char*)0xB8000;
+    clear_screen();
 
-    const char* msg = "NanoVMM starting...";
+    print("NanoVMM Day 2 ");
+    print_color("ONLINE ", 0x0A);
+    print(" | ");
 
-    for (int i = 0; msg[i] != '\0'; i++) {
-        vga[i * 2] = msg[i];
-        vga[i * 2 + 1] = 0x07;
-    }
+    print_color("Screen Driver Loaded ", 0x0B);
+    print(" | ");
+
+    print_color("Ready", 0x0E);
 
     while (1) { }
 }
