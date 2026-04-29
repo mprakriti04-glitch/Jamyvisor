@@ -4,12 +4,21 @@ dd 0x1BADB002
 dd 0x00000000
 dd -(0x1BADB002)
 
+section .bss
+align 16
+stack_bottom:
+resb 16384
+stack_top:
+
 section .text
 global _start
 extern kernel_main
 
 _start:
+    cli
+    mov esp, stack_top
     call kernel_main
 
-.hang:
-    jmp .hang
+hang:
+    hlt
+    jmp hang
