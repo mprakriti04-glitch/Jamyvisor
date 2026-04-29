@@ -18,9 +18,10 @@ build/kernel.o: kernel/kernel.c | build
 
 build/screen.o: kernel/screen.c | build
 	$(CC) $(CFLAGS) -c kernel/screen.c -o build/screen.o
-
-kernel.bin: build/boot.o build/kernel.o build/screen.o
-	$(CC) -ffreestanding -nostdlib $(LDFLAGS) -o build/kernel.bin build/boot.o build/kernel.o build/screen.o -lgcc
+build/cpu.o: kernel/cpu.c | build
+	$(CC) $(CFLAGS) -c kernel/cpu.c -o build/cpu.o
+kernel.bin: build/boot.o build/kernel.o build/screen.o build/cpu.o
+	$(CC) -ffreestanding -nostdlib $(LDFLAGS) -o build/kernel.bin build/boot.o build/kernel.o build/screen.o build/cpu.o -lgcc
 
 iso: kernel.bin
 	mkdir -p iso/boot/grub
