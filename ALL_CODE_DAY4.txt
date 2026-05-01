@@ -1,0 +1,358 @@
+section .multiboot
+align 4
+dd 0x1BADB002
+dd 0x00000000
+dd -(0x1BADB002)
+
+section .bss
+align 16
+stack_bottom:
+resb 16384
+stack_top:
+
+section .text
+global _start
+extern kernel_main
+
+_start:
+    cli
+    mov esp, stack_top
+    call kernel_main
+
+hang:
+    hlt
+    jmp hang
+menuentry "NanoVMM" {
+    multiboot /boot/kernel.bin
+    boot
+}
+#include "cpu.h"
+
+void get_cpu_vendor(char* vendor) {
+    unsigned int ebx, ecx, edx;
+
+    __asm__ volatile (
+        "cpuid"
+        : "=b"(ebx), "=c"(ecx), "=d"(edx)
+        : "a"(0)
+    );
+
+    ((unsigned int*)vendor)[0] = ebx;
+    ((unsigned int*)vendor)[1] = edx;
+    ((unsigned int*)vendor)[2] = ecx;
+
+    vendor[12] = '\0';
+}
+
+int cpu_has_vmx() {
+    unsigned int ecx;
+
+    __asm__ volatile (
+        "cpuid"
+        : "=c"(ecx)
+        : "a"(1)
+        : "ebx", "edx"
+    );
+
+    return (ecx >> 5) & 1;
+}
+
+#include "screen.h"
+#include "cpu.h"
+
+void kernel_main() {
+    char vendor[13];
+
+    clear_screen();
+
+    print("NanoVMM v0.3\n\n");
+
+    log_level(LOG_OK, "Screen ready");
+log_level(LOG_INFO, "Detecting CPU...");
+
+    get_cpu_vendor(vendor);
+
+print("[CPU] Vendor: ");
+print(vendor);
+print("\n");
+if (cpu_has_vmx()) {
+    log_level(LOG_OK, "VT-x Supported");
+} else {
+    log_level(LOG_ERR, "VT-x Not Supported");
+}
+print("\nTesting numbers:\n");
+
+print("Decimal: ");
+print_int(12345);
+print("\n");
+
+print("Hex: ");
+print_hex(0x1A2B3C);
+print("\n");
+    while (1) { }
+
+}
+#include <stdint.h>
+#include "screen.h"
+#define VGA_WIDTH 80
+#define VGA_HEIGHT 25
+#define VGA_MEMORY ((uint16_t*)0xB8000)
+#define COLOR_WHITE 0x07
+#define COLOR_GREEN 0x0A
+#define COLOR_RED   0x0C
+#define COLOR_YELLOW 0x0E
+static uint16_t* const vga_buffer = VGA_MEMORY;
+static int cursor_row = 0;
+static int cursor_col = 0;
+static uint8_t color = 0x07; // white on black
+
+// Clear entire screen
+void clear_screen() {
+    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+        vga_buffer[i] = (color << 8) | ' ';
+    }
+
+    cursor_row = 0;
+    cursor_col = 0;
+}
+void scroll() {
+    // Move each row up
+    for (int row = 1; row < VGA_HEIGHT; row++) {
+        for (int col = 0; col < VGA_WIDTH; col++) {
+            vga_buffer[(row - 1) * VGA_WIDTH + col] =
+                vga_buffer[row * VGA_WIDTH + col];
+        }
+    }
+
+    // Clear last row
+    for (int col = 0; col < VGA_WIDTH; col++) {
+        vga_buffer[(VGA_HEIGHT - 1) * VGA_WIDTH + col] =
+            (color << 8) | ' ';
+    }
+
+    // Move cursor back to last row
+    cursor_row = VGA_HEIGHT - 1;
+}
+// Low-level character output
+static void putchar(char c) {
+    if (c == '\n') {
+        cursor_col = 0;
+        cursor_row++;
+
+        if (cursor_row >= VGA_HEIGHT) {
+            scroll();
+        }
+        return;
+    }
+
+    int index = cursor_row * VGA_WIDTH + cursor_col;
+    vga_buffer[index] = (color << 8) | c;
+
+    cursor_col++;
+
+    if (cursor_col >= VGA_WIDTH) {
+        cursor_col = 0;
+        cursor_row++;
+    }
+
+    if (cursor_row >= VGA_HEIGHT) {
+        scroll();
+    }
+}
+
+// Print string
+void print(const char* str) {
+    for (int i = 0; str[i] != '\0'; i++) {
+        putchar(str[i]);
+    }
+}
+
+// Logger functions (Day 3 upgrade)
+
+// Informational message
+void print_info(const char* msg) {
+    print("[INFO] ");
+    print(msg);
+    print("\n");
+}
+
+// Success message
+void print_ok(const char* msg) {
+    print("[OK] ");
+    print(msg);
+    print("\n");
+}
+
+// Error message
+void print_err(const char* msg) {
+    print("[ERR] ");
+    print(msg);
+    print("\n");
+}
+void log_level(log_level_t level, const char* msg) {
+    uint8_t old_color = color;
+
+    const char* tag;
+
+    switch (level) {
+        case LOG_OK:
+            color = COLOR_GREEN;
+            tag = "OK";
+            break;
+        case LOG_ERR:
+            color = COLOR_RED;
+            tag = "ERR";
+            break;
+        case LOG_WARN:
+            color = COLOR_YELLOW;
+            tag = "WARN";
+            break;
+        default:
+            color = COLOR_WHITE;
+            tag = "INFO";
+            break;
+    }
+
+    print("[");
+    print(tag);
+    print("] ");
+
+    color = COLOR_WHITE;
+    print(msg);
+    print("\n");
+
+    color = old_color;
+}
+char* itoa(int value, char* str, int base) {
+    char* rc = str;
+    char* ptr = str;
+    char* low;
+
+
+    // Check base
+    if (base < 2 || base > 36) {
+        *str = '\0';
+        return str;
+    }
+
+    // Handle negative numbers (only for base 10)
+    if (value < 0 && base == 10) {
+        *ptr++ = '-';
+    }
+
+    low = ptr;
+
+    // Convert number
+    do {
+        *ptr++ = "0123456789abcdefghijklmnopqrstuvwxyz"[value % base < 0 ? -(value % base) : value % base];
+        value /= base;
+    } while (value);
+
+    *ptr-- = '\0';
+
+    // Reverse string
+    while (low < ptr) {
+        char tmp = *low;
+        *low++ = *ptr;
+        *ptr-- = tmp;
+    }
+
+    return rc;
+}
+void print_int(int value) {
+    char buffer[32];
+    itoa(value, buffer, 10);
+    print(buffer);
+}
+
+void print_hex(unsigned int value) {
+    char buffer[32];
+    itoa(value, buffer, 16);
+    print("0x");
+    print(buffer);
+}
+#ifndef CPU_H
+#define CPU_H
+
+void get_cpu_vendor(char* vendor);
+int cpu_has_vmx();
+
+#endif
+
+#ifndef SCREEN_H
+#define SCREEN_H
+typedef enum {
+    LOG_OK,
+    LOG_INFO,
+    LOG_ERR,
+    LOG_WARN
+} log_level_t;
+void clear_screen();
+void print(const char* str);
+
+void print_info(const char* msg);
+void print_ok(const char* msg);
+void print_err(const char* msg);
+void log_level(log_level_t level, const char* msg);
+void print_int(int value);
+void print_hex(unsigned int value);
+#endif
+ENTRY(_start)
+
+SECTIONS
+{
+    . = 1M;
+
+    .text : {
+        *(.multiboot)
+        *(.text)
+    }
+
+    .rodata : {
+        *(.rodata)
+    }
+
+    .data : {
+        *(.data)
+    }
+
+    .bss : {
+        *(.bss)
+    }
+}
+PREFIX = i686-elf
+CC = $(PREFIX)-gcc
+LD = $(PREFIX)-ld
+
+CFLAGS = -ffreestanding -O2 -Wall -Wextra -std=gnu99
+LDFLAGS = -T kernel/linker.ld
+
+all: iso
+
+build:
+	mkdir -p build
+
+build/boot.o: boot/boot.asm | build
+	nasm -f elf32 boot/boot.asm -o build/boot.o
+
+build/kernel.o: kernel/kernel.c | build
+	$(CC) $(CFLAGS) -c kernel/kernel.c -o build/kernel.o
+
+build/screen.o: kernel/screen.c | build
+	$(CC) $(CFLAGS) -c kernel/screen.c -o build/screen.o
+build/cpu.o: kernel/cpu.c | build
+	$(CC) $(CFLAGS) -c kernel/cpu.c -o build/cpu.o
+kernel.bin: build/boot.o build/kernel.o build/screen.o build/cpu.o
+	$(CC) -ffreestanding -nostdlib $(LDFLAGS) -o build/kernel.bin build/boot.o build/kernel.o build/screen.o build/cpu.o -lgcc
+
+iso: kernel.bin
+	mkdir -p iso/boot/grub
+	cp build/kernel.bin iso/boot/kernel.bin
+	cp boot/grub/grub.cfg iso/boot/grub/grub.cfg
+	grub-mkrescue -o NanoVMM.iso iso
+
+run: iso
+	qemu-system-i386 -cdrom NanoVMM.iso
+
+clean:
+	rm -rf build NanoVMM.iso
