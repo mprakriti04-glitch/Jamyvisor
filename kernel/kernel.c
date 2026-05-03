@@ -1,6 +1,6 @@
 #include "screen.h"
 #include "cpu.h"
-
+#include <stdint.h>
 void kernel_main() {
     char vendor[13];
 
@@ -16,13 +16,59 @@ log_level(LOG_INFO, "Detecting CPU...");
 print("[CPU] Vendor: ");
 print(vendor);
 print("\n");
-if (cpu_has_vmx()) {
+uint32_t ecx;
+
+log_level(LOG_INFO, "Checking VMX support...");
+
+int vmx = cpu_check_vmx(&ecx);
+
+print("[CPU] ECX = ");
+print_hex(ecx);
+print("\n");
+
+print("[CPU] VMX Bit (bit 5) = ");
+print_int((ecx >> 5) & 1);
+print("\n");
+
+if (vmx) {
     log_level(LOG_OK, "VT-x Supported");
 } else {
     log_level(LOG_ERR, "VT-x Not Supported");
 }
-print("\nTesting numbers:\n");
+uint32_t cr0 = read_cr0();
+uint32_t cr4 = read_cr4();
 
+print("\n[CPU] CR0 = ");
+print_hex(cr0);
+print("\n");
+
+print("[CPU] CR4 = ");
+print_hex(cr4);
+print("\n");
+print("\nTesting numbers:\n");
+uint64_t feature_msr = rdmsr(0x3A);
+
+print("\n[CPU] MSR[0x3A] = ");
+print_hex((uint32_t)(feature_msr >> 32));
+print_hex((uint32_t)(feature_msr & 0xFFFFFFFF));
+print("\n");
+
+int lock_bit = feature_msr & 1;
+int vmx_enable = (feature_msr >> 2) & 1;
+
+print("[VMX] Lock: ");
+if (lock_bit) {
+    print("ON\n");
+} else {
+    print("OFF\n");
+}
+
+print("[VMX] Enabled: ");
+if (vmx_enable) {
+    print("YES\n");
+} else {
+    print("NO\n");
+}
 print("Decimal: ");
 print_int(12345);
 print("\n");

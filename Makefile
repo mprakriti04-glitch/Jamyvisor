@@ -29,8 +29,8 @@ iso: kernel.bin
 	cp boot/grub/grub.cfg iso/boot/grub/grub.cfg
 	grub-mkrescue -o NanoVMM.iso iso
 
-run: iso
-	qemu-system-i386 -cdrom NanoVMM.iso
+run:
+	qemu-system-i386 -cdrom NanoVMM.iso -enable-kvm -cpu host
 
 clean:
 	rm -rf build NanoVMM.iso
