@@ -112,6 +112,23 @@ print("\n[VMX] VMXON region allocated\n");
 print("[VMX] VMXON addr = ");
 print_hex((uint32_t)vmxon_region);
 print("\n");
+// =========================
+// Day 13 - VMX Revision ID
+// =========================
+
+uint64_t vmx_basic = rdmsr(0x480);
+
+// Lower 31 bits = revision ID
+uint32_t vmx_revision_id = (uint32_t)(vmx_basic & 0x7FFFFFFF);
+
+print("[VMX] Revision ID = ");
+print_hex(vmx_revision_id);
+print("\n");
+
+// Write revision ID into VMXON region
+*(uint32_t*)vmxon_region = vmx_revision_id;
+
+print("[VMX] Revision written to VMXON region\n");
     while (1) { }
 
 }
