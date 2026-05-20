@@ -105,6 +105,13 @@ print("\n");
 print("Hex: ");
 print_hex(0x1A2B3C);
 print("\n");
+static uint8_t vmxon_region[4096] __attribute__((aligned(4096)));
+
+print("\n[VMX] VMXON region allocated\n");
+
+print("[VMX] VMXON addr = ");
+print_hex((uint32_t)vmxon_region);
+print("\n");
     while (1) { }
 
 }
