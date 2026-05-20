@@ -71,3 +71,31 @@ void write_cr4(uint32_t value) {
         : "r"(value)
     );
 }
+int vmxon(uint32_t vmxon_region_phys) {
+    uint8_t status;
+
+    __asm__ volatile (
+        "vmxon %[addr]\n\t"
+        "setna %[status]"
+        : [status] "=rm"(status)
+        : [addr] "m"(vmxon_region_phys)
+        : "cc", "memory"
+    );
+
+    return status == 0;
+}
+void write_cr0(uint32_t value) {
+    __asm__ volatile (
+        "mov %0, %%cr0"
+        :
+        : "r"(value)
+    );
+}
+void vmxoff() {
+    __asm__ volatile (
+        "vmxoff"
+        :
+        :
+        : "memory"
+    );
+}

@@ -1,6 +1,7 @@
 #include "screen.h"
 #include "cpu.h"
 #include <stdint.h>
+static uint8_t vmxon_region[4096] __attribute__((aligned(4096)));
 void kernel_main() {
     char vendor[13];
 
@@ -105,8 +106,6 @@ print("\n");
 print("Hex: ");
 print_hex(0x1A2B3C);
 print("\n");
-static uint8_t vmxon_region[4096] __attribute__((aligned(4096)));
-
 print("\n[VMX] VMXON region allocated\n");
 
 print("[VMX] VMXON addr = ");
@@ -129,6 +128,39 @@ print("\n");
 *(uint32_t*)vmxon_region = vmx_revision_id;
 
 print("[VMX] Revision written to VMXON region\n");
+// =========================
+// Day 14 - Execute VMXON
+// =========================
+
+uint32_t vmxon_phys = (uint32_t)vmxon_region;
+// =========================
+// Fix CR0/CR4 for VMX
+// =========================
+
+// CR0
+cr0 |= (uint32_t)(cr0_fixed0 & 0xFFFFFFFF);
+cr0 &= (uint32_t)(cr0_fixed1 & 0xFFFFFFFF);
+
+// CR4
+cr4 |= (uint32_t)(cr4_fixed0 & 0xFFFFFFFF);
+cr4 &= (uint32_t)(cr4_fixed1 & 0xFFFFFFFF);
+
+// Write corrected values
+write_cr0(cr0);
+write_cr4(cr4);
+
+print("[VMX] CR0/CR4 adjusted for VMX\n");
+int vmxon_success = vmxon(vmxon_phys);
+
+if (vmxon_success) {
+    print("[VMX] Entered VMX Root Mode\n");
+
+    vmxoff();
+
+    print("[VMX] VMXOFF executed\n");
+} else {
+    print("[VMX] VMXON FAILED\n");
+}
     while (1) { }
 
 }

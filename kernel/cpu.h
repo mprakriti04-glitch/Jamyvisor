@@ -10,4 +10,7 @@ uint32_t read_cr0();
 uint32_t read_cr4();
 uint64_t rdmsr(uint32_t msr);
 void write_cr4(uint32_t value);
+int vmxon(uint32_t vmxon_region_phys);
+void write_cr0(uint32_t value);
+void vmxoff();
 #endif
