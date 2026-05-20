@@ -64,3 +64,10 @@ uint64_t rdmsr(uint32_t msr) {
 
     return ((uint64_t)high << 32) | low;
 }
+void write_cr4(uint32_t value) {
+    __asm__ volatile (
+        "mov %0, %%cr4"
+        :
+        : "r"(value)
+    );
+}

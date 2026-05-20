@@ -45,6 +45,16 @@ print("\n");
 print("[CPU] CR4 = ");
 print_hex(cr4);
 print("\n");
+cr4 |= (1 << 13);
+
+write_cr4(cr4);
+
+print("[VMX] CR4.VMXE enabled\n");
+cr4 = read_cr4();
+
+print("[CPU] New CR4 = ");
+print_hex(cr4);
+print("\n");
 print("\nTesting numbers:\n");
 uint64_t feature_msr = rdmsr(0x3A);
 
