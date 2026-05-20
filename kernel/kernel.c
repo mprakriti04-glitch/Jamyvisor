@@ -52,7 +52,16 @@ print("\n[CPU] MSR[0x3A] = ");
 print_hex((uint32_t)(feature_msr >> 32));
 print_hex((uint32_t)(feature_msr & 0xFFFFFFFF));
 print("\n");
+uint64_t cr4_fixed0 = rdmsr(0x488);
+uint64_t cr4_fixed1 = rdmsr(0x489);
 
+print("\n[VMX] CR4_FIXED0 = ");
+print_hex((uint32_t)(cr4_fixed0 & 0xFFFFFFFF));
+print("\n");
+
+print("[VMX] CR4_FIXED1 = ");
+print_hex((uint32_t)(cr4_fixed1 & 0xFFFFFFFF));
+print("\n");
 int lock_bit = feature_msr & 1;
 int vmx_enable = (feature_msr >> 2) & 1;
 
