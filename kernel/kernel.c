@@ -69,6 +69,16 @@ if (vmx_enable) {
 } else {
     print("NO\n");
 }
+uint64_t cr0_fixed0 = rdmsr(0x486);
+uint64_t cr0_fixed1 = rdmsr(0x487);
+
+print("\n[VMX] CR0_FIXED0 = ");
+print_hex((uint32_t)(cr0_fixed0 & 0xFFFFFFFF));
+print("\n");
+
+print("[VMX] CR0_FIXED1 = ");
+print_hex((uint32_t)(cr0_fixed1 & 0xFFFFFFFF));
+print("\n");
 print("Decimal: ");
 print_int(12345);
 print("\n");
