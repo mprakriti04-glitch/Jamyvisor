@@ -72,17 +72,17 @@ void write_cr4(uint32_t value) {
     );
 }
 int vmxon(uint32_t vmxon_region_phys) {
-    uint8_t status;
+    uint8_t ret;
 
     __asm__ volatile (
-        "vmxon %[addr]\n\t"
-        "setna %[status]"
-        : [status] "=rm"(status)
-        : [addr] "m"(vmxon_region_phys)
-        : "cc", "memory"
+        "vmxon %1\n\t"
+        "setna %0"
+        : "=rm"(ret)
+        : "m"(vmxon_region_phys)
+        : "memory", "cc"
     );
 
-    return status == 0;
+    return ret == 0;
 }
 void write_cr0(uint32_t value) {
     __asm__ volatile (

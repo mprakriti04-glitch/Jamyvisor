@@ -1,7 +1,8 @@
 #include "screen.h"
 #include "cpu.h"
 #include <stdint.h>
-static uint8_t vmxon_region[4096] __attribute__((aligned(4096)));
+__attribute__((aligned(4096)))
+uint8_t vmxon_region[4096];
 void kernel_main() {
     char vendor[13];
 
@@ -132,7 +133,7 @@ print("[VMX] Revision written to VMXON region\n");
 // Day 14 - Execute VMXON
 // =========================
 
-uint32_t vmxon_phys = (uint32_t)vmxon_region;
+volatile uint32_t vmxon_phys = (uint32_t)&vmxon_region;
 // =========================
 // Fix CR0/CR4 for VMX
 // =========================
@@ -150,14 +151,15 @@ write_cr0(cr0);
 write_cr4(cr4);
 
 print("[VMX] CR0/CR4 adjusted for VMX\n");
+print("[VMX] About to execute VMXON...\n");
 int vmxon_success = vmxon(vmxon_phys);
 
 if (vmxon_success) {
     print("[VMX] Entered VMX Root Mode\n");
 
-    vmxoff();
+   // vmxoff();
 
-    print("[VMX] VMXOFF executed\n");
+   // print("[VMX] VMXOFF executed\n");
 } else {
     print("[VMX] VMXON FAILED\n");
 }
