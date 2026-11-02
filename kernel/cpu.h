@@ -15,4 +15,13 @@ void write_cr4(uint32_t value);
 int vmxon(uint64_t *vmxon_pointer);
 void write_cr0(uint32_t value);
 void vmxoff();
+typedef enum {
+    VMX_SUCCESS = 0,
+    VMX_FAIL_INVALID = 1,
+    VMX_FAIL_VALID = 2
+} vmx_status_t;
+
+vmx_status_t vmclear(uint64_t *vmcs_pointer);
+vmx_status_t vmptrld(uint64_t *vmcs_pointer);
+vmx_status_t vmread(uint32_t field, uint32_t *value);
 #endif

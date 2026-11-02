@@ -85,6 +85,69 @@ int vmxon(uint64_t *vmxon_pointer) {
     return ret == 0;
 }
 
+vmx_status_t vmclear(uint64_t *vmcs_pointer) {
+    unsigned char cf, zf;
+
+    __asm__ volatile (
+        "vmclear %2\n\t"
+        "setc %0\n\t"
+        "setz %1"
+        : "=qm"(cf), "=qm"(zf)
+        : "m"(*vmcs_pointer)
+        : "memory", "cc"
+    );
+
+    if (cf)
+        return VMX_FAIL_INVALID;
+
+    if (zf)
+        return VMX_FAIL_VALID;
+
+    return VMX_SUCCESS;
+}
+vmx_status_t vmptrld(uint64_t *vmcs_pointer) {
+    unsigned char cf, zf;
+
+    __asm__ volatile (
+        "vmptrld %2\n\t"
+        "setc %0\n\t"
+        "setz %1"
+        : "=qm"(cf), "=qm"(zf)
+        : "m"(*vmcs_pointer)
+        : "memory", "cc"
+    );
+
+    if (cf)
+        return VMX_FAIL_INVALID;
+
+    if (zf)
+        return VMX_FAIL_VALID;
+
+    return VMX_SUCCESS;
+}
+vmx_status_t vmread(uint32_t field, uint32_t *value) {
+    unsigned char cf, zf;
+    uint32_t result;
+
+    __asm__ volatile (
+        "vmread %3, %2\n\t"
+        "setc %0\n\t"
+        "setz %1"
+        : "=qm"(cf), "=qm"(zf), "=r"(result)
+        : "r"(field)
+        : "cc"
+    );
+
+    if (cf)
+        return VMX_FAIL_INVALID;
+
+    if (zf)
+        return VMX_FAIL_VALID;
+
+    *value = result;
+
+    return VMX_SUCCESS;
+}
 void write_cr0(uint32_t value) {
     __asm__ volatile (
         "mov %0, %%cr0"

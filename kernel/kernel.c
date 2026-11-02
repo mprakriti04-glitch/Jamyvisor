@@ -3,6 +3,9 @@
 #include <stdint.h>
 __attribute__((aligned(4096)))
 uint8_t vmxon_region[4096];
+// VMCS region
+__attribute__((aligned(4096)))
+uint8_t vmcs_region[4096];
 // Page-aligned paging structures
 __attribute__((aligned(4096)))
 uint32_t page_directory[1024];
@@ -142,7 +145,21 @@ print("\n");
 // =========================
 
 uint64_t vmx_basic = rdmsr(0x480);
+uint32_t vmcs_size = (uint32_t)((vmx_basic >> 32) & 0x1FFF);
+uint32_t memory_type = (uint32_t)((vmx_basic >> 50) & 0xF);
+uint32_t physical_width = (uint32_t)((vmx_basic >> 48) & 1);
 
+print("[VMCS] Region size = ");
+print_int(vmcs_size);
+print(" bytes\n");
+
+print("[VMCS] Memory type = ");
+print_int(memory_type);
+print("\n");
+
+print("[VMCS] Physical address width flag = ");
+print_int(physical_width);
+print("\n");
 // Lower 31 bits = revision ID
 uint32_t vmx_revision_id = (uint32_t)(vmx_basic & 0x7FFFFFFF);
 
@@ -154,6 +171,10 @@ print("\n");
 *(uint32_t*)vmxon_region = vmx_revision_id;
 
 print("[VMX] Revision written to VMXON region\n");
+// Write revision ID into VMCS region
+*(uint32_t*)vmcs_region = vmx_revision_id;
+
+print("[VMCS] Revision written to VMCS region\n");
 // =========================
 // Day 14 - Execute VMXON
 // =========================
@@ -204,16 +225,82 @@ write_cr0(cr0);
 print("[PAGING] CR0 configured\n");
 print("[VMX] About to execute VMXON...\n");
 int vmxon_success = vmxon(&vmxon_pointer);
-
 if (vmxon_success) {
+
     print("[VMX] Entered VMX Root Mode\n");
 
-   // vmxoff();
+    // Prepare VMCS physical address
+    uint64_t vmcs_pointer =
+        (uint64_t)(uint32_t)vmcs_region;
 
-   // print("[VMX] VMXOFF executed\n");
-} else {
-    print("[VMX] VMXON FAILED\n");
+    print("[VMCS] Region address = ");
+    print_hex((uint32_t)vmcs_pointer);
+    print("\n");
+
+    // Execute VMCLEAR
+// Execute VMCLEAR
+print("[VMCS] Executing VMCLEAR...\n");
+
+vmx_status_t clear_status = vmclear(&vmcs_pointer);
+
+if (clear_status == VMX_SUCCESS) {
+
+    print("[VMCS] VMCLEAR SUCCESS\n");
+
+    // Execute VMPTRLD
+    print("[VMCS] Executing VMPTRLD...\n");
+
+    vmx_status_t load_status = vmptrld(&vmcs_pointer);
+
+    if (load_status == VMX_SUCCESS) {
+
+        print("[VMCS] VMPTRLD SUCCESS\n");
+
+        // Execute VMREAD
+        uint32_t vmcs_value = 0;
+
+        print("[VMCS] Executing VMREAD...\n");
+
+        vmx_status_t read_status = vmread(0x4400, &vmcs_value);
+
+        if (read_status == VMX_SUCCESS) {
+
+            print("[VMCS] VMREAD SUCCESS\n");
+            print("[VMCS] VM-instruction error = ");
+            print_hex(vmcs_value);
+            print("\n");
+
+        }
+        else if (read_status == VMX_FAIL_INVALID) {
+            print("[VMCS] VMREAD VMfailInvalid\n");
+        }
+        else {
+            print("[VMCS] VMREAD VMfailValid\n");
+        }
+
+    }
+    else if (load_status == VMX_FAIL_INVALID) {
+        print("[VMCS] VMPTRLD VMfailInvalid\n");
+    }
+    else {
+        print("[VMCS] VMPTRLD VMfailValid\n");
+    }
+
 }
-    while (1) { }
+else if (clear_status == VMX_FAIL_INVALID) {
+    print("[VMCS] VMCLEAR VMfailInvalid\n");
+}
+else {
+    print("[VMCS] VMCLEAR VMfailValid\n");
+}
 
+} else {
+
+    print("[VMX] VMXON FAILED\n");
+
+}
+
+while (1) {
+    __asm__ volatile ("hlt");
+}
 }
