@@ -1,0 +1,16 @@
+# Build output
+build/
+
+# Generated ISO and GRUB staging directory
+NanoVMM.iso
+iso/
+
+# Debug logs
+qemu.log
+
+# Backup files
+*.backup
+
+# Temporary files
+*.tmp
+setup.sh

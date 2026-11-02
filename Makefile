@@ -1,8 +1,8 @@
-PREFIX = i686-elf
+PREFIX = i686-linux-gnu
 CC = $(PREFIX)-gcc
 LD = $(PREFIX)-ld
 
-CFLAGS = -ffreestanding -O2 -Wall -Wextra -std=gnu99
+CFLAGS = -ffreestanding -fno-pie -O2 -Wall -Wextra -std=gnu99
 LDFLAGS = -T kernel/linker.ld
 
 all: iso
@@ -21,7 +21,7 @@ build/screen.o: kernel/screen.c | build
 build/cpu.o: kernel/cpu.c | build
 	$(CC) $(CFLAGS) -c kernel/cpu.c -o build/cpu.o
 kernel.bin: build/boot.o build/kernel.o build/screen.o build/cpu.o
-	$(CC) -ffreestanding -nostdlib $(LDFLAGS) -o build/kernel.bin build/boot.o build/kernel.o build/screen.o build/cpu.o -lgcc
+	$(CC) -ffreestanding -fno-pie -no-pie -nostdlib $(LDFLAGS) -o build/kernel.bin build/boot.o build/kernel.o build/screen.o build/cpu.o -lgcc
 
 iso: kernel.bin
 	mkdir -p iso/boot/grub

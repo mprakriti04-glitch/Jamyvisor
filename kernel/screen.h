@@ -1,5 +1,6 @@
 #ifndef SCREEN_H
 #define SCREEN_H
+#include <stdint.h>
 typedef enum {
     LOG_OK,
     LOG_INFO,
@@ -15,4 +16,5 @@ void print_err(const char* msg);
 void log_level(log_level_t level, const char* msg);
 void print_int(int value);
 void print_hex(unsigned int value);
+void print_hex64(uint64_t value);
 #endif

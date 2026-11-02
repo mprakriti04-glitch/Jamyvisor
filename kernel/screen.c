@@ -172,8 +172,30 @@ void print_int(int value) {
 }
 
 void print_hex(unsigned int value) {
-    char buffer[32];
-    itoa(value, buffer, 16);
+    char buffer[9];
+    const char* digits = "0123456789ABCDEF";
+
+    for (int i = 7; i >= 0; i--) {
+        buffer[i] = digits[value & 0xF];
+        value >>= 4;
+    }
+
+    buffer[8] = '\0';
+
+    print("0x");
+    print(buffer);
+}
+void print_hex64(uint64_t value) {
+    char buffer[17];
+    const char* digits = "0123456789ABCDEF";
+
+    for (int i = 15; i >= 0; i--) {
+        buffer[i] = digits[value & 0xF];
+        value >>= 4;
+    }
+
+    buffer[16] = '\0';
+
     print("0x");
     print(buffer);
 }

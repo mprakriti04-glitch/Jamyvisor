@@ -8,9 +8,11 @@ void get_cpu_vendor(char* vendor);
 int cpu_check_vmx(uint32_t* ecx_out);
 uint32_t read_cr0();
 uint32_t read_cr4();
+uint32_t read_cr3(void);
+void write_cr3(uint32_t value);
 uint64_t rdmsr(uint32_t msr);
 void write_cr4(uint32_t value);
-int vmxon(uint32_t vmxon_region_phys);
+int vmxon(uint64_t *vmxon_pointer);
 void write_cr0(uint32_t value);
 void vmxoff();
 #endif
